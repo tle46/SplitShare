@@ -2830,3 +2830,140 @@ main.entry-page {
 .receipt-status-actions > button {
   width: 100%;
 }
+
+/* The primary navigation shares a single compact header with the account menu. */
+.app { display: block; }
+.app > main { margin-left: 0; }
+.app-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 52px;
+  padding: 0 24px;
+  background: var(--color-primary);
+  color: #fff;
+  border-bottom: 1px solid var(--color-primary-hover);
+}
+.app-topbar > nav {
+  display: flex;
+  gap: 2px;
+  margin: 0;
+  min-width: 0;
+}
+.app-topbar > nav button {
+  min-height: 52px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #e4eee8;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+}
+.app-topbar > nav button:hover,
+.app-topbar > nav button.selected { background: var(--color-primary-hover); color: #fff; }
+.app-topbar > nav button.selected { box-shadow: inset 0 -3px #a9cfb9; }
+.app-topbar .account-controls { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.app-topbar .top-profile,
+.app-topbar .top-logout {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 4px 8px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+}
+.app-topbar .top-profile:hover,
+.app-topbar .top-logout:hover { background: var(--color-primary-hover); }
+.app-topbar .top-profile strong { color: #fff; font-size: 14px; }
+.app-topbar .top-profile small { display: none; }
+.app-topbar .top-profile .avatar {
+  width: 28px;
+  height: 28px;
+  background: #e4eee8;
+  color: var(--color-primary);
+}
+.app-topbar button:focus-visible { outline-color: #fff; outline-offset: -4px; }
+
+.app-topbar .mobile-nav-icon,
+.app-topbar .mobile-nav-label { display: none; }
+@media (max-width: 850px) {
+  .app { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  .app-topbar { flex-wrap: nowrap; gap: 0; padding: 0 12px; }
+  .app-topbar .account-controls { min-height: 48px; justify-content: flex-end; min-width: 0; }
+  .app-topbar > nav {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    width: 100%;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--color-primary);
+    border-top: 1px solid var(--color-primary-hover);
+  }
+  .app-topbar > nav button {
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    min-height: 64px;
+    padding: 8px 2px;
+    font-size: 12px;
+    white-space: nowrap;
+    text-align: center;
+    justify-content: center;
+    line-height: 1.2;
+    color: #e4eee8;
+  }
+  .app-topbar > nav button:hover,
+  .app-topbar > nav button.selected {
+    background: var(--color-primary-hover);
+    color: #fff;
+    box-shadow: none;
+  }
+  .app-topbar > nav button.selected { box-shadow: inset 0 2px #a9cfb9; }
+  .app-topbar > nav button:focus-visible { outline-color: #fff; }
+  .app-topbar .desktop-nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .app-topbar .mobile-nav-icon,
+  .app-topbar .mobile-nav-label { display: block; }
+  .app-topbar .top-profile > svg { display: none; }
+  .app-topbar .top-profile { min-width: 0; }
+  .app-topbar .top-profile > span:not(.avatar) { min-width: 0; }
+  .app-topbar .top-profile strong { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+@media (max-width: 850px) {
+  .app-topbar > nav .mobile-nav-icon { width: 21px; height: 21px; }
+}
+
+.topbar-wordmark {
+  flex-shrink: 0;
+  color: #fff;
+  text-decoration: none;
+  font-size: 21px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.5px;
+}
+.topbar-wordmark:focus-visible { outline-color: #fff; }
+@media (max-width: 850px) {
+  .app-topbar { gap: 8px; }
+  .topbar-wordmark { font-size: 19px; }
+  .app-topbar .account-controls { gap: 2px; }
+  .app-topbar .top-profile strong { max-width: 85px; }
+  .app-topbar .top-logout span { display: none; }
+}

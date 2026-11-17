@@ -17,6 +17,8 @@ import {
   Check,
   ChevronRight,
   FileText,
+  FolderOpen,
+  Wallet,
   Plus,
   Search,
   Trash2,
@@ -24,8 +26,6 @@ import {
   X,
   UserRound,
   LogOut,
-  FolderOpen,
-  Wallet,
 } from "lucide-react";
 import {
   api,
@@ -626,26 +626,29 @@ export default function App({ account }: { account: Account }) {
   );
   return (
     <div className="app">
-      <aside
-        className="sidebar"
+      <header
+        className="app-topbar"
         inert={identity || scanner}
         aria-hidden={identity || scanner || undefined}
       >
         <a
-          className="brand"
+          className="topbar-wordmark"
           href="#"
-          onClick={(e) => {
-            e.preventDefault();
+          onClick={(event) => {
+            event.preventDefault();
             leave("receipts");
           }}
         >
-          <span className="brand-wordmark">SplitShare</span>
+          SplitShare
         </a>
-        <p className="brand-subtitle">Upload and share receipts</p>
-        <div className="workspace-label">RECEIPTS</div>
         <nav aria-label="Main navigation">
           <button
             aria-label="My receipts"
+            aria-current={
+              page !== "people" && page !== "balances" && !sharedSection
+                ? "page"
+                : undefined
+            }
             className={
               page !== "people" && page !== "balances" && !sharedSection
                 ? "selected"
@@ -653,86 +656,85 @@ export default function App({ account }: { account: Account }) {
             }
             onClick={() => leave("receipts")}
           >
-            <FileText size={19} />
-            My receipts<span className="nav-count">{ownedReceipts.length}</span>
+            <FileText className="mobile-nav-icon" size={21} aria-hidden="true" />
+            <span className="desktop-nav-label">My receipts</span>
+            <span className="mobile-nav-label" aria-hidden="true">Receipts</span>
           </button>
           <button
             aria-label="Shared with me"
+            aria-current={sharedSection ? "page" : undefined}
             className={sharedSection ? "selected" : ""}
             onClick={() => leave("shared")}
           >
-            <FolderOpen size={19} />
-            Shared with me
-            <span className="nav-count">{sharedReceipts.length}</span>
+            <FolderOpen className="mobile-nav-icon" size={21} aria-hidden="true" />
+            <span className="desktop-nav-label">Shared with me</span>
+            <span className="mobile-nav-label" aria-hidden="true">Shared</span>
           </button>
           <button
+            aria-current={page === "balances" ? "page" : undefined}
             className={page === "balances" ? "selected" : ""}
             onClick={() => leave("balances")}
           >
-            <Wallet size={19} />
-            Balances
+            <Wallet className="mobile-nav-icon" size={21} aria-hidden="true" />
+            <span className="desktop-nav-label">Balances</span>
+            <span className="mobile-nav-label" aria-hidden="true">Balances</span>
           </button>
-          <div className="nav-divider" />
           <button
+            aria-current={page === "people" ? "page" : undefined}
             className={page === "people" ? "selected" : ""}
             onClick={() => leave("people")}
           >
-            <Users size={19} />
-            People
+            <Users className="mobile-nav-icon" size={21} aria-hidden="true" />
+            <span className="desktop-nav-label">People</span>
+            <span className="mobile-nav-label" aria-hidden="true">People</span>
           </button>
         </nav>
-      </aside>
+        <div className="account-controls">
+          <button
+            className="profile top-profile"
+            aria-label="Account menu"
+            disabled={busy}
+            onClick={() => {
+              if (lock.current) return;
+
+              setIdentity(true);
+            }}
+          >
+            <span className="avatar">
+              {owner.status === "GUEST" ? (
+                <UserRound size={18} />
+              ) : (
+                (owner.displayName || owner.username).slice(0, 1).toUpperCase()
+              )}
+            </span>
+            <span>
+              <strong>{owner.displayName || owner.username || "Guest"}</strong>
+              <small>
+                {owner.status === "GUEST"
+                  ? "Log in / create account"
+                  : "Account settings"}
+              </small>
+            </span>
+            <ChevronRight size={14} />
+          </button>
+          {owner.status !== "GUEST" && (
+            <button
+              className="top-logout"
+              aria-label="Log out"
+              title="Log out"
+              disabled={busy}
+              onClick={logout}
+            >
+              <LogOut size={17} />
+              <span>Log out</span>
+            </button>
+          )}
+        </div>
+      </header>
       <main
         inert={identity || scanner}
         aria-hidden={identity || scanner || undefined}
       >
-        <header className="topbar">
-          <div className="account-controls">
-            <button
-              className="profile top-profile"
-              aria-label="Account menu"
-              disabled={busy}
-              onClick={() => {
-                if (lock.current) return;
-
-                setIdentity(true);
-              }}
-            >
-              <span className="avatar">
-                {owner.status === "GUEST" ? (
-                  <UserRound size={18} />
-                ) : (
-                  (owner.displayName || owner.username)
-                    .slice(0, 1)
-                    .toUpperCase()
-                )}
-              </span>
-              <span>
-                <strong>
-                  {owner.displayName || owner.username || "Guest"}
-                </strong>
-                <small>
-                  {owner.status === "GUEST"
-                    ? "Log in / create account"
-                    : "Account settings"}
-                </small>
-              </span>
-              <ChevronRight size={14} />
-            </button>
-            {owner.status !== "GUEST" && (
-              <button
-                className="top-logout"
-                aria-label="Log out"
-                title="Log out"
-                disabled={busy}
-                onClick={logout}
-              >
-                <LogOut size={17} />
-                <span>Log out</span>
-              </button>
-            )}
-          </div>
-        </header>
         <div className="content">
           {owner.status === "GUEST" && (
             <div className="guest-banner">

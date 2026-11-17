@@ -16,9 +16,7 @@ import {
   ArrowLeft,
   Check,
   ChevronRight,
-  Coffee,
   FileText,
-  Leaf,
   Plus,
   Search,
   Trash2,
@@ -128,14 +126,18 @@ export default function App({ account }: { account: Account }) {
     };
   }, [identity]);
   const name = (id: number) => {
-    if (id === owner.id)
-      return `${owner.displayName || owner.username} (you)`;
-    const participant = active?.participants.find((p) => p.userId === id)
-      || receipts.flatMap((r) => r.participants).find(
-        (p) => p.userId === id && (p.displayName || p.username),
-      );
-    return participant?.displayName || participant?.username
-      || friends.find((f) => f.userId === id)?.displayName || `Person #${id}`;
+    if (id === owner.id) return `${owner.displayName || owner.username} (you)`;
+    const participant =
+      active?.participants.find((p) => p.userId === id) ||
+      receipts
+        .flatMap((r) => r.participants)
+        .find((p) => p.userId === id && (p.displayName || p.username));
+    return (
+      participant?.displayName ||
+      participant?.username ||
+      friends.find((f) => f.userId === id)?.displayName ||
+      `Person #${id}`
+    );
   };
   function fail(e: unknown) {
     setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -311,16 +313,33 @@ export default function App({ account }: { account: Account }) {
     }
   }
   async function unsettleReceipt() {
-    if (busy || paymentLock.current || !active || active.ownerId !== owner.id
-      || active.status === "DRAFT") return;
+    if (
+      busy ||
+      paymentLock.current ||
+      !active ||
+      active.ownerId !== owner.id ||
+      active.status === "DRAFT"
+    )
+      return;
     paymentLock.current = true;
     try {
-      if (!(await confirm(
-        "Reverse all recorded payments on this receipt? Positive shares owed by other participants will become outstanding again. Your own share and zero shares remain settled. No funds are transferred.",
-        { title: "Unsettle receipt?", confirmLabel: "Unsettle receipt", danger: true },
-      ))) return;
+      if (
+        !(await confirm(
+          "Reverse all recorded payments on this receipt? Positive shares owed by other participants will become outstanding again. Your own share and zero shares remain settled. No funds are transferred.",
+          {
+            title: "Unsettle receipt?",
+            confirmLabel: "Unsettle receipt",
+            danger: true,
+          },
+        ))
+      )
+        return;
       await run(async () => {
-        const result = await api.action<Receipt>(owner.id, active.id, "unsettle");
+        const result = await api.action<Receipt>(
+          owner.id,
+          active.id,
+          "unsettle",
+        );
         setActive(result);
         setDraft(toDraft(result));
         setDirty(false);
@@ -513,6 +532,36 @@ export default function App({ account }: { account: Account }) {
   const participantView = active != null && active.ownerId !== owner?.id;
   const readOnly =
     active != null && (active.status !== "DRAFT" || participantView);
+  const receiptStatusAction =
+    !participantView &&
+    (!readOnly ? (
+      <button
+        className="primary"
+        disabled={busy}
+        onClick={() => void lifecycle("finalize")}
+      >
+        Finalize receipt <Check size={16} />
+      </button>
+    ) : active?.status === "FINALIZED" ? (
+      <button
+        className="primary"
+        disabled={busy}
+        onClick={async () => {
+          if (
+            await confirm(
+              "Mark this receipt settled? This records all payments received and does not transfer money.",
+              {
+                title: "Mark receipt settled?",
+                confirmLabel: "Mark settled",
+              },
+            )
+          )
+            void lifecycle("settle");
+        }}
+      >
+        Mark settled <Check size={16} />
+      </button>
+    ) : null);
   const subtotal =
     draft?.items.reduce((n, i) => n + i.quantity * i.unitPrice, 0) || 0;
   const total = draft
@@ -590,14 +639,9 @@ export default function App({ account }: { account: Account }) {
             leave("receipts");
           }}
         >
-          <span className="brand-icon">
-            <Leaf size={24} />
-          </span>
           <span className="brand-wordmark">SplitShare</span>
         </a>
-        <p className="brand-subtitle">
-          Split and share receipts with your friends!
-        </p>
+        <p className="brand-subtitle">Upload and share receipts</p>
         <div className="workspace-label">RECEIPTS</div>
         <nav aria-label="Main navigation">
           <button
@@ -643,18 +687,6 @@ export default function App({ account }: { account: Account }) {
         aria-hidden={identity || scanner || undefined}
       >
         <header className="topbar">
-          <span>
-            Workspace <ChevronRight size={14} />{" "}
-            {page === "balances"
-              ? "Balances"
-              : page === "people"
-                ? "People"
-                : page === "editor"
-                  ? "Receipt details"
-                  : page === "shared"
-                    ? "Shared with me"
-                    : "My receipts"}
-          </span>
           <div className="account-controls">
             <button
               className="profile top-profile"
@@ -797,9 +829,6 @@ export default function App({ account }: { account: Account }) {
               </div>
               <div className="stats">
                 <div>
-                  <span className="stat-icon">
-                    <FileText />
-                  </span>
                   <div>
                     <small>
                       {page === "shared" ? "Shared receipts" : "Owned receipts"}
@@ -808,9 +837,6 @@ export default function App({ account }: { account: Account }) {
                   </div>
                 </div>
                 <div>
-                  <span className="stat-icon amber">
-                    <Coffee />
-                  </span>
                   <div>
                     <small>
                       {page === "shared" ? "Finalized" : "In progress"}
@@ -827,11 +853,8 @@ export default function App({ account }: { account: Account }) {
                   </div>
                 </div>
                 <div>
-                  <span className="stat-icon green">
-                    <Check />
-                  </span>
                   <div>
-                    <small>Settled up</small>
+                    <small>Settled</small>
                     <strong>
                       {collection.filter((r) => r.status === "SETTLED").length}
                     </strong>
@@ -892,9 +915,6 @@ export default function App({ account }: { account: Account }) {
                         onClick={() => void open(r)}
                       >
                         <span className="merchant">
-                          <span className="merchant-icon">
-                            <Coffee size={20} />
-                          </span>
                           <span>
                             <strong>
                               {r.merchantName || "Untitled receipt"}
@@ -929,10 +949,6 @@ export default function App({ account }: { account: Account }) {
                   </div>
                 ) : (
                   <div className="empty">
-                    <div className="empty-art">
-                      <FileText size={42} />
-                      <span>÷</span>
-                    </div>
                     <h3>
                       {search || filter !== "ALL"
                         ? "No matching receipts"
@@ -1121,13 +1137,7 @@ export default function App({ account }: { account: Account }) {
                       >
                         Save draft
                       </button>
-                      <button
-                        className="primary"
-                        disabled={busy}
-                        onClick={() => void lifecycle("finalize")}
-                      >
-                        Finalize receipt <Check size={16} />
-                      </button>
+                      {receiptStatusAction}
                     </>
                   )}
                   {active?.status === "FINALIZED" && !participantView && (
@@ -1151,29 +1161,17 @@ export default function App({ account }: { account: Account }) {
                           Reopen
                         </button>
                       )}
-                      <button
-                        className="primary"
-                        disabled={busy}
-                        onClick={async () => {
-                          if (
-                            await confirm(
-                              "Mark this receipt settled? This records all payments received and does not transfer money.",
-                              {
-                                title: "Mark receipt settled?",
-                                confirmLabel: "Mark settled",
-                              },
-                            )
-                          )
-                            void lifecycle("settle");
-                        }}
-                      >
-                        Mark settled <Check size={16} />
-                      </button>
+                      {receiptStatusAction}
                     </>
                   )}
-                  {active && !participantView &&
-                    (active.status === "SETTLED" || hasReceivedPayment(active)) && (
-                      <button disabled={busy} onClick={() => void unsettleReceipt()}>
+                  {active &&
+                    !participantView &&
+                    (active.status === "SETTLED" ||
+                      hasReceivedPayment(active)) && (
+                      <button
+                        disabled={busy}
+                        onClick={() => void unsettleReceipt()}
+                      >
                         Unsettle receipt
                       </button>
                     )}
@@ -1335,7 +1333,7 @@ export default function App({ account }: { account: Account }) {
                     />
                     <section className="panel form-card">
                       <h2>
-                        <span className="step">04</span> The extras
+                        <span className="step">04</span> Adjustments
                       </h2>
                       <div className="extras-grid">
                         {field("discount", "Discount", "number")}
@@ -1495,9 +1493,6 @@ export default function App({ account }: { account: Account }) {
                       </section>
                     )}
                   <section className="panel summary">
-                    <div className="summary-icon">
-                      <FileText size={23} />
-                    </div>
                     <h2>Receipt total</h2>
                     <p>
                       {draft.items.length} item
@@ -1527,6 +1522,11 @@ export default function App({ account }: { account: Account }) {
                         : "Estimated total · review for the server-calculated split"}
                     </small>
                   </section>
+                  {receiptStatusAction && (
+                    <div className="receipt-status-actions">
+                      {receiptStatusAction}
+                    </div>
+                  )}
                   {active &&
                     active.status !== "SETTLED" &&
                     !participantView &&
@@ -1572,8 +1572,8 @@ export default function App({ account }: { account: Account }) {
         <footer>
           SplitShare <span>Created by Thomas Le</span>
           <div className="footer-credit">
-            <span>Split and share receipts with your friends!</span>
-            <span>Copyright © 2026 Thomas Le. All rights reserved.</span>
+            <span>Upload and share receipts</span>
+            <span>Site in progress :D</span>
           </div>
         </footer>
       </main>
@@ -1644,4 +1644,3 @@ export default function App({ account }: { account: Account }) {
     </div>
   );
 }
-

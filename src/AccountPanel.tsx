@@ -206,6 +206,60 @@ export default function AccountPanel({
   }
   const clientId = (import.meta as unknown as { env: Record<string, string> })
     .env.VITE_GOOGLE_CLIENT_ID;
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState(false);
+  const [googleAttempt, setGoogleAttempt] = useState(0);
+  const googleCallbacks = useRef({ beforeSwitch, close });
+  googleCallbacks.current = { beforeSwitch, close };
+  const googleVisible = mode === "login" || mode === "register" || mode === "profile";
+  const accountId = user?.id;
+  useEffect(() => {
+    if (!clientId || !googleVisible) return;
+    let cancelled = false;
+    const container = googleButton.current;
+    const epoch = session.epoch();
+    const linkAccount = mode !== "login" && !!session.get();
+    setGoogleLoading(true);
+    setGoogleError(false);
+    async function prepareGoogle() {
+      try {
+        await loadGoogle();
+        if (cancelled) return;
+        const { nonce } = await auth.nonce(linkAccount);
+        if (cancelled || epoch !== session.epoch() || !container) return;
+        const google = (window as unknown as { google: GoogleApi }).google;
+        google.accounts.id.initialize({
+          client_id: clientId,
+          nonce,
+          callback: (result) => {
+            if (cancelled || !alive.current || epoch !== session.epoch()) return;
+            void run(async () => {
+              await googleCallbacks.current.beforeSwitch();
+              if (cancelled || epoch !== session.epoch()) return;
+              const next = await auth.google(result.credential, nonce, linkAccount);
+              if (cancelled || epoch !== session.epoch()) return;
+              session.set(next);
+              googleCallbacks.current.close?.();
+            });
+          },
+        });
+        container.replaceChildren();
+        google.accounts.id.renderButton(container, { theme: "outline", size: "large" });
+      } catch (e) {
+        if (!cancelled) {
+          setGoogleError(true);
+          setError(e instanceof Error ? e.message : "Google sign-in could not load.");
+        }
+      } finally {
+        if (!cancelled) setGoogleLoading(false);
+      }
+    }
+    void prepareGoogle();
+    return () => {
+      cancelled = true;
+      container?.replaceChildren();
+    };
+  }, [clientId, googleVisible, mode, accountId, googleAttempt]);
   return (
     <div className={embedded ? "entry-account" : "modal-backdrop"}>
       <section
@@ -331,53 +385,19 @@ export default function AccountPanel({
           </form>
           {(mode === "login" || mode === "register" || mode === "profile") && (
             <>
-              <button
-                disabled={!clientId}
-                onClick={() =>
-                  void run(async () => {
-                    await beforeSwitch();
-                    const linkAccount = mode !== "login" && !!session.get();
-                    await loadGoogle();
-                    const epoch = session.epoch();
-                    const { nonce } = await auth.nonce(linkAccount);
-                    if (!alive.current || epoch !== session.epoch()) return;
-                    const google = (window as unknown as { google: GoogleApi })
-                      .google;
-                    google.accounts.id.initialize({
-                      client_id: clientId,
-                      nonce,
-                      callback: (result) => {
-                        if (!alive.current || epoch !== session.epoch()) return;
-                        void run(async () => {
-                          await beforeSwitch();
-                          const next = await auth.google(
-                            result.credential,
-                            nonce,
-                            linkAccount,
-                          );
-                          session.set(next);
-                          close?.();
-                        });
-                      },
-                    });
-                    googleButton.current!.replaceChildren();
-                    google.accounts.id.renderButton(googleButton.current!, {
-                      theme: "outline",
-                      size: "large",
-                    });
-                  })
-                }
-              >
-                {mode === "login"
-                  ? "Sign in with Google"
-                  : user?.status === "ACTIVE"
-                    ? "Link Google account"
-                    : "Register with Google"}
-              </button>
-              {!clientId && (
+              {!clientId ? (
                 <small>Google sign-in is unavailable on this deployment.</small>
+              ) : (
+                <>
+                  {googleLoading && <small role="status">Loading Google sign-in…</small>}
+                  {googleError && (
+                    <button type="button" onClick={() => setGoogleAttempt((n) => n + 1)}>
+                      Retry loading Google sign-in
+                    </button>
+                  )}
+                  <div ref={googleButton} inert={busy} />
+                </>
               )}
-              <div ref={googleButton} />
             </>
           )}
           <nav className="account-help-links" aria-label="Account help">

@@ -2967,3 +2967,10 @@ main.entry-page {
   .app-topbar .top-profile strong { max-width: 85px; }
   .app-topbar .top-logout span { display: none; }
 }
+
+.google-sign-in {
+  width: 100%;
+  max-width: 400px;
+  margin-top: 16px;
+  min-height: 40px;
+}

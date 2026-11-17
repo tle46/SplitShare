@@ -15,7 +15,15 @@ type GoogleApi = {
       }): void;
       renderButton(
         element: HTMLElement,
-        options: { theme: string; size: string },
+        options: {
+          type: "standard";
+          theme: string;
+          size: string;
+          shape: "rectangular";
+          text: "signin_with";
+          logo_alignment: "left";
+          width: number;
+        },
       ): void;
       cancel(): void;
     };
@@ -244,7 +252,16 @@ export default function AccountPanel({
           },
         });
         container.replaceChildren();
-        google.accounts.id.renderButton(container, { theme: "outline", size: "large" });
+        google.accounts.id.renderButton(container, {
+          type: "standard",
+          theme: "outline",
+          // Google only personalizes large buttons. Medium keeps the generic label.
+          size: "medium",
+          shape: "rectangular",
+          text: "signin_with",
+          logo_alignment: "left",
+          width: Math.min(400, container.clientWidth),
+        });
       } catch (e) {
         if (!cancelled) {
           setGoogleError(true);
@@ -395,7 +412,7 @@ export default function AccountPanel({
                       Retry loading Google sign-in
                     </button>
                   )}
-                  <div ref={googleButton} inert={busy} />
+                  <div className="google-sign-in" ref={googleButton} inert={busy} />
                 </>
               )}
             </>
